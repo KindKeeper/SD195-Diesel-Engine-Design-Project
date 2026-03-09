@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Generated results (程序运行生成的内容)
+results/tables/*.csv
+results/calculations/*.txt
+results/plots/*.png
+
+# Drawings (大型CAD文件，如有需要可手动管理)
+*.dwg
+*.FCStd
+
+# Temporary files
+*.tmp
+*.bak
+~$*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Agent documentation (AI内部文档)
+AGENTS.md

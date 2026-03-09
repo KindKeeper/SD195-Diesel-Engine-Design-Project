@@ -1,0 +1,202 @@
+"""
+轴承负荷计算模块
+计算连杆轴颈负荷和主轴颈负荷
+"""
+
+import numpy as np
+from parameters import (
+    CRANK_ANGLES, ROD_LENGTH, CRANK_RADIUS,
+    ROD_ROT_MASS, CRANK_PIN_MASS, CRANK_WEB_MASS, BALANCE_WEIGHT_MASS,
+    CRANK_PIN_COG_R, CRANK_WEB_COG_R, BALANCE_WEIGHT_COG_R,
+    ANGULAR_VELOCITY
+)
+from dynamics import calculate_rod_force, calculate_rod_angle
+
+
+def calculate_rod_bearing_load(phi_deg, pressure_data):
+    """
+    计算连杆轴颈负荷
+    
+    连杆轴颈承受连杆传来的力，需要分解到坐标系中
+    
+    参数:
+        phi_deg: 曲轴转角 [度]
+        pressure_data: 压力数据字典
+    
+    返回:
+        dict: {'x': x方向负荷, 'y': y方向负荷, 'magnitude': 合力大小, 'angle': 方向角}
+    """
+    Fc = calculate_rod_force(phi_deg, pressure_data)
+    beta = calculate_rod_angle(phi_deg)
+    phi = np.radians(phi_deg)
+    
+    # 连杆力在曲柄销坐标系中的分解
+    # 连杆受压时，力指向曲柄中心
+    # x轴：沿曲柄向外为正
+    # y轴：垂直曲柄，旋转方向90°为正
+    
+    Fx = -Fc * np.cos(phi + beta)  # x方向
+    Fy = -Fc * np.sin(phi + beta)  # y方向
+    
+    magnitude = np.sqrt(Fx**2 + Fy**2)
+    angle = np.degrees(np.arctan2(Fy, Fx))
+    
+    return {
+        'x': Fx,
+        'y': Fy,
+        'magnitude': magnitude,
+        'angle': angle
+    }
+
+
+def calculate_rotating_inertia_force():
+    """
+    计算旋转质量离心力
+    
+    旋转质量包括：连杆旋转部分、曲柄销、曲柄臂、平衡重
+    
+    返回:
+        总离心力的等效值 [N]
+    """
+    # 各部件离心力
+    F_rod_rot = ROD_ROT_MASS * CRANK_RADIUS * (ANGULAR_VELOCITY ** 2)  # 连杆大头（重心在曲柄销中心）
+    F_crank_pin = CRANK_PIN_MASS * CRANK_PIN_COG_R * (ANGULAR_VELOCITY ** 2)
+    F_crank_web = CRANK_WEB_MASS * CRANK_WEB_COG_R * (ANGULAR_VELOCITY ** 2)
+    F_balance = BALANCE_WEIGHT_MASS * BALANCE_WEIGHT_COG_R * (ANGULAR_VELOCITY ** 2)
+    
+    # 净旋转惯性力（平衡重产生反向离心力）
+    total = F_rod_rot + F_crank_pin + F_crank_web - F_balance
+    
+    return total
+
+
+def calculate_main_bearing_load(phi_deg, pressure_data):
+    """
+    计算主轴颈负荷
+    
+    主轴颈负荷由连杆轴颈负荷和旋转质量离心力合成
+    
+    参数:
+        phi_deg: 曲轴转角 [度]
+        pressure_data: 压力数据字典
+    
+    返回:
+        dict: {'x': x方向负荷, 'y': y方向负荷, 'magnitude': 合力大小, 'angle': 方向角}
+    """
+    # 连杆轴颈负荷
+    rod_load = calculate_rod_bearing_load(phi_deg, pressure_data)
+    
+    # 旋转质量离心力（始终向外）
+    F_rot = calculate_rotating_inertia_force()
+    phi = np.radians(phi_deg)
+    
+    # 离心力分量（始终沿曲柄向外）
+    Fx_rot = F_rot * np.cos(phi)
+    Fy_rot = F_rot * np.sin(phi)
+    
+    # 主轴颈负荷 = 连杆轴颈负荷 + 离心力
+    Fx = rod_load['x'] + Fx_rot
+    Fy = rod_load['y'] + Fy_rot
+    
+    magnitude = np.sqrt(Fx**2 + Fy**2)
+    angle = np.degrees(np.arctan2(Fy, Fx))
+    
+    return {
+        'x': Fx,
+        'y': Fy,
+        'magnitude': magnitude,
+        'angle': angle
+    }
+
+
+def calculate_all_bearing_loads(pressure_data):
+    """
+    计算所有曲轴转角的轴承负荷
+    
+    参数:
+        pressure_data: 压力数据字典
+    
+    返回:
+        dict: 包含连杆轴颈负荷和主轴颈负荷的字典
+    """
+    rod_bearing_x = []
+    rod_bearing_y = []
+    rod_bearing_mag = []
+    rod_bearing_angle = []
+    
+    main_bearing_x = []
+    main_bearing_y = []
+    main_bearing_mag = []
+    main_bearing_angle = []
+    
+    for phi in CRANK_ANGLES:
+        # 连杆轴颈负荷
+        rod = calculate_rod_bearing_load(phi, pressure_data)
+        rod_bearing_x.append(rod['x'])
+        rod_bearing_y.append(rod['y'])
+        rod_bearing_mag.append(rod['magnitude'])
+        rod_bearing_angle.append(rod['angle'])
+        
+        # 主轴颈负荷
+        main = calculate_main_bearing_load(phi, pressure_data)
+        main_bearing_x.append(main['x'])
+        main_bearing_y.append(main['y'])
+        main_bearing_mag.append(main['magnitude'])
+        main_bearing_angle.append(main['angle'])
+    
+    return {
+        'crank_angle': CRANK_ANGLES,
+        'rod_bearing': {
+            'x': np.array(rod_bearing_x),
+            'y': np.array(rod_bearing_y),
+            'magnitude': np.array(rod_bearing_mag),
+            'angle': np.array(rod_bearing_angle)
+        },
+        'main_bearing': {
+            'x': np.array(main_bearing_x),
+            'y': np.array(main_bearing_y),
+            'magnitude': np.array(main_bearing_mag),
+            'angle': np.array(main_bearing_angle)
+        }
+    }
+
+
+def prepare_polar_plot_data(bearing_load_data, bearing_type='rod'):
+    """
+    准备极坐标图数据
+    
+    参数:
+        bearing_load_data: 轴承负荷计算结果
+        bearing_type: 'rod' 或 'main'
+    
+    返回:
+        tuple: (角度数组, 负荷大小数组)
+    """
+    key = f'{bearing_type}_bearing'
+    angles = np.radians(CRANK_ANGLES)
+    magnitudes = bearing_load_data[key]['magnitude']
+    
+    return angles, magnitudes
+
+
+if __name__ == "__main__":
+    # 测试计算
+    from io_utils import load_pressure_data
+    
+    try:
+        pressure_data = load_pressure_data('../../data/original/pressure_data_SD195.csv')
+        loads = calculate_all_bearing_loads(pressure_data)
+        
+        print("=" * 60)
+        print("轴承负荷计算结果")
+        print("=" * 60)
+        print(f"旋转质量离心力: {calculate_rotating_inertia_force()/1e3:.2f} kN")
+        print()
+        print("连杆轴颈负荷:")
+        print(f"  范围: {loads['rod_bearing']['magnitude'].min()/1e3:.2f} ~ {loads['rod_bearing']['magnitude'].max()/1e3:.2f} kN")
+        print()
+        print("主轴颈负荷:")
+        print(f"  范围: {loads['main_bearing']['magnitude'].min()/1e3:.2f} ~ {loads['main_bearing']['magnitude'].max()/1e3:.2f} kN")
+        print("=" * 60)
+    except FileNotFoundError:
+        print("请先创建气体压力数据文件")

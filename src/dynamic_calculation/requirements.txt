@@ -1,0 +1,5 @@
+# SD195柴油机动力计算程序依赖
+# 安装命令: pip install -r requirements.txt
+
+numpy>=1.21.0          # 数值计算
+matplotlib>=3.5.0      # 绘制曲线图
