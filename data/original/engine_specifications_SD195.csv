@@ -1,7 +1,7 @@
 parameter,value,unit,description
 rated_power,8.8,kW,额定功率
 rated_speed,2000,r/min,额定转速
-fuel_consumption,258,g/(kW·h),燃油消耗率
+fuel_consumption,258.4,g/(kW·h),燃油消耗率
 bore,95,mm,气缸直径
 stroke,115,mm,活塞行程
 crank_radius,57.5,mm,曲柄半径

@@ -6,32 +6,9 @@
 import numpy as np
 from parameters import (
     RECIPROCATING_MASS, PISTON_AREA, LAMBDA, ROD_LENGTH,
-    CRANK_ANGLES, ANGULAR_VELOCITY
+    CRANK_ANGLES, ANGULAR_VELOCITY, CRANK_RADIUS, PISTON_OFFSET
 )
 from kinematics import calculate_piston_acceleration
-
-
-def load_pressure_data(filepath):
-    """
-    从CSV文件加载气体压力数据
-    
-    参数:
-        filepath: CSV文件路径
-    
-    返回:
-        dict: {曲轴转角(度): 气体压力(Pa)}
-    """
-    import csv
-    pressure_data = {}
-    
-    with open(filepath, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            angle = int(row['crank_angle'])
-            pressure = float(row['pressure_mpa']) * 1e6  # MPa 转 Pa
-            pressure_data[angle] = pressure
-    
-    return pressure_data
 
 
 def get_gas_pressure(phi_deg, pressure_data):
@@ -44,8 +21,20 @@ def get_gas_pressure(phi_deg, pressure_data):
     
     返回:
         气体压力 [Pa]
+    
+    异常:
+        KeyError: 当角度不在数据集中且无合理默认值时
     """
-    return pressure_data.get(phi_deg, 0.1e6)  # 默认0.1MPa
+    if phi_deg in pressure_data:
+        return pressure_data[phi_deg]
+    
+    # 如果角度不存在，尝试找最近的
+    if pressure_data:
+        nearest_angle = min(pressure_data.keys(), key=lambda x: abs(x - phi_deg))
+        print(f"警告: 角度 {phi_deg}° 不在数据中，使用最近的角度 {nearest_angle}°")
+        return pressure_data[nearest_angle]
+    
+    raise KeyError(f"压力数据为空，无法获取角度 {phi_deg}° 的压力值")
 
 
 def calculate_inertia_force(phi_deg):
@@ -106,7 +95,7 @@ def calculate_rod_angle(phi_deg):
     """
     计算连杆摆角
     
-    公式: β = arcsin(λ × sinφ)
+    公式: β = arcsin((R·sinφ + e) / L)
     
     参数:
         phi_deg: 曲轴转角 [度]
@@ -115,7 +104,11 @@ def calculate_rod_angle(phi_deg):
         连杆摆角 [弧度]
     """
     phi = np.radians(phi_deg)
-    sin_beta = LAMBDA * np.sin(phi)
+    
+    # 带活塞偏移的公式
+    sin_beta = (CRANK_RADIUS * np.sin(phi) + PISTON_OFFSET) / ROD_LENGTH
+    sin_beta = np.clip(sin_beta, -1.0, 1.0)
+    
     beta = np.arcsin(sin_beta)
     return beta
 
@@ -135,7 +128,13 @@ def calculate_rod_force(phi_deg, pressure_data):
     """
     F = calculate_resultant_force(phi_deg, pressure_data)
     beta = calculate_rod_angle(phi_deg)
-    Fc = F / np.cos(beta)
+    
+    # 数值稳定性保护：防止cos(β)接近0时除法溢出
+    cos_beta = np.cos(beta)
+    if abs(cos_beta) < 1e-10:
+        cos_beta = np.sign(cos_beta) * 1e-10 if cos_beta != 0 else 1e-10
+    
+    Fc = F / cos_beta
     return Fc
 
 
@@ -143,7 +142,7 @@ def calculate_side_force(phi_deg, pressure_data):
     """
     计算侧向力
     
-    公式: Fn = F × tanβ
+    公式: Fn = F × tanβ = F × sinβ / cosβ
     
     参数:
         phi_deg: 曲轴转角 [度]
@@ -154,7 +153,16 @@ def calculate_side_force(phi_deg, pressure_data):
     """
     F = calculate_resultant_force(phi_deg, pressure_data)
     beta = calculate_rod_angle(phi_deg)
-    Fn = F * np.tan(beta)
+    
+    # 使用 sin/cos 避免 tan 在接近90°时溢出
+    sin_beta = np.sin(beta)
+    cos_beta = np.cos(beta)
+    
+    # 数值稳定性保护
+    if abs(cos_beta) < 1e-10:
+        cos_beta = np.sign(cos_beta) * 1e-10 if cos_beta != 0 else 1e-10
+    
+    Fn = F * sin_beta / cos_beta
     return Fn
 
 
@@ -175,7 +183,12 @@ def calculate_tangential_force(phi_deg, pressure_data):
     phi = np.radians(phi_deg)
     beta = calculate_rod_angle(phi_deg)
     
-    Ft = F * np.sin(phi + beta) / np.cos(beta)
+    cos_beta = np.cos(beta)
+    # 数值稳定性保护
+    if abs(cos_beta) < 1e-10:
+        cos_beta = np.sign(cos_beta) * 1e-10 if cos_beta != 0 else 1e-10
+    
+    Ft = F * np.sin(phi + beta) / cos_beta
     return Ft
 
 
@@ -196,7 +209,12 @@ def calculate_radial_force(phi_deg, pressure_data):
     phi = np.radians(phi_deg)
     beta = calculate_rod_angle(phi_deg)
     
-    Fr = F * np.cos(phi + beta) / np.cos(beta)
+    cos_beta = np.cos(beta)
+    # 数值稳定性保护
+    if abs(cos_beta) < 1e-10:
+        cos_beta = np.sign(cos_beta) * 1e-10 if cos_beta != 0 else 1e-10
+    
+    Fr = F * np.cos(phi + beta) / cos_beta
     return Fr
 
 

@@ -1,12 +1,14 @@
 """
 运动学计算模块
 计算活塞位移、速度、加速度
+
+注：使用带活塞偏移的公式（e = 7mm）
 """
 
 import numpy as np
 from parameters import (
     CRANK_RADIUS, ROD_LENGTH, LAMBDA,
-    ANGULAR_VELOCITY, CRANK_ANGLES
+    ANGULAR_VELOCITY, CRANK_ANGLES, PISTON_OFFSET
 )
 
 
@@ -14,7 +16,8 @@ def calculate_piston_displacement(phi_deg):
     """
     计算活塞位移
     
-    公式: x = R[(1 - cosφ) + (1/λ)(1 - √(1 - λ²sin²φ))]
+    公式: x = R(1 - cosφ) + L(1 - cosβ)
+          其中 sin(β) = (R·sinφ + e) / L
     
     参数:
         phi_deg: 曲轴转角 [度]
@@ -26,8 +29,13 @@ def calculate_piston_displacement(phi_deg):
     sin_phi = np.sin(phi)
     cos_phi = np.cos(phi)
     
-    x = CRANK_RADIUS * ((1 - cos_phi) + 
-                        (1 / LAMBDA) * (1 - np.sqrt(1 - (LAMBDA * sin_phi) ** 2)))
+    # 连杆摆角 sin(β) = (R·sinφ + e) / L
+    sin_beta = (CRANK_RADIUS * sin_phi + PISTON_OFFSET) / ROD_LENGTH
+    sin_beta = np.clip(sin_beta, -1.0, 1.0)  # 数值稳定性
+    cos_beta = np.sqrt(max(1 - sin_beta**2, 1e-10))
+    
+    # 活塞位移
+    x = CRANK_RADIUS * (1 - cos_phi) + ROD_LENGTH * (1 - cos_beta)
     return x
 
 
@@ -35,7 +43,8 @@ def calculate_piston_velocity(phi_deg):
     """
     计算活塞速度
     
-    公式: v = Rω[sinφ + (λsin2φ)/(2√(1-λ²sin²φ))]
+    公式: v = Rω[sinφ + cosφ·tanβ]
+          其中 sin(β) = (R·sinφ + e) / L
     
     参数:
         phi_deg: 曲轴转角 [度]
@@ -46,12 +55,14 @@ def calculate_piston_velocity(phi_deg):
     phi = np.radians(phi_deg)
     sin_phi = np.sin(phi)
     cos_phi = np.cos(phi)
-    sin_2phi = np.sin(2 * phi)
     
-    sqrt_term = np.sqrt(1 - (LAMBDA * sin_phi) ** 2)
+    # 连杆摆角
+    sin_beta = (CRANK_RADIUS * sin_phi + PISTON_OFFSET) / ROD_LENGTH
+    sin_beta = np.clip(sin_beta, -1.0, 1.0)
+    cos_beta = np.sqrt(max(1 - sin_beta**2, 1e-10))
     
-    v = CRANK_RADIUS * ANGULAR_VELOCITY * (sin_phi + 
-                                             (LAMBDA * sin_2phi) / (2 * sqrt_term))
+    # 活塞速度
+    v = CRANK_RADIUS * ANGULAR_VELOCITY * (sin_phi + cos_phi * sin_beta / cos_beta)
     return v
 
 
@@ -59,7 +70,8 @@ def calculate_piston_acceleration(phi_deg):
     """
     计算活塞加速度
     
-    公式: a = Rω²[cosφ + λcos2φ/(1-λ²sin²φ)^(3/2)]
+    公式: a = Rω²[cos(φ+β)/cosβ + λ·cos²φ/cos³β]
+          其中 sin(β) = (R·sinφ + e) / L
     
     参数:
         phi_deg: 曲轴转角 [度]
@@ -70,12 +82,17 @@ def calculate_piston_acceleration(phi_deg):
     phi = np.radians(phi_deg)
     sin_phi = np.sin(phi)
     cos_phi = np.cos(phi)
-    cos_2phi = np.cos(2 * phi)
     
-    sqrt_term = np.sqrt(1 - (LAMBDA * sin_phi) ** 2)
+    # 连杆摆角
+    sin_beta = (CRANK_RADIUS * sin_phi + PISTON_OFFSET) / ROD_LENGTH
+    sin_beta = np.clip(sin_beta, -1.0, 1.0)
+    cos_beta = np.sqrt(max(1 - sin_beta**2, 1e-10))
     
-    a = CRANK_RADIUS * (ANGULAR_VELOCITY ** 2) * (cos_phi + 
-                                                   (LAMBDA * cos_2phi) / (sqrt_term ** 3))
+    # 活塞加速度
+    a = CRANK_RADIUS * (ANGULAR_VELOCITY ** 2) * (
+        np.cos(phi + np.arcsin(sin_beta)) / cos_beta + 
+        (LAMBDA * cos_phi**2) / (cos_beta**3)
+    )
     return a
 
 
@@ -129,18 +146,12 @@ def verify_kinematics():
     print(f"  速度 v = {v_180:.4f} m/s (应为0)")
     print(f"  加速度 a = {a_180:.2f} m/s²")
     
-    # 最大速度位置
-    max_v_idx = np.argmax(np.abs(calculate_all_kinematics()['velocity']))
-    max_v_angle = CRANK_ANGLES[max_v_idx]
-    print(f"最大速度出现在: {max_v_angle}°")
-    
     print("=" * 60)
 
 
 if __name__ == "__main__":
     verify_kinematics()
     
-    # 测试计算
     kin = calculate_all_kinematics()
     print(f"\n计算完成，共 {len(kin['crank_angle'])} 个数据点")
     print(f"位移范围: {kin['displacement'].min()*1e3:.2f} ~ {kin['displacement'].max()*1e3:.2f} mm")

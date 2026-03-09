@@ -67,6 +67,7 @@ def plot_forces(dynamics_data, save_path=None):
     
     angles = dynamics_data['crank_angle']
     
+    # 使用力的单位 kN (F[N] / 1000)
     ax.plot(angles, dynamics_data['gas_force'] / 1e3, 'b-', 
             linewidth=1.5, label='气体力(Fg)')
     ax.plot(angles, dynamics_data['inertia_force'] / 1e3, 'r-', 
@@ -148,7 +149,7 @@ def plot_bearing_load_polar(bearing_data, bearing_type='rod', save_path=None):
     
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
     
-    # 极坐标图
+    # 极坐标图（使用力的单位kN）
     ax.plot(angles, magnitudes / 1e3, 'b-', linewidth=1.5)
     ax.fill(angles, magnitudes / 1e3, alpha=0.25)
     

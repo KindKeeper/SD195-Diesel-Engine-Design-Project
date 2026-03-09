@@ -49,25 +49,57 @@ def calculate_rod_bearing_load(phi_deg, pressure_data):
     }
 
 
-def calculate_rotating_inertia_force():
+def calculate_rotating_inertia_force_components(phi_deg):
     """
-    计算旋转质量离心力
+    计算旋转质量离心力分量
     
     旋转质量包括：连杆旋转部分、曲柄销、曲柄臂、平衡重
+    各质量产生的离心力方向：
+    - 连杆旋转质量、曲柄销、曲柄臂：沿曲柄方向向外（角度φ）
+    - 平衡重：通常安装在曲柄对面（角度φ+180°），用于抵消部分旋转质量
+    
+    参数:
+        phi_deg: 曲轴转角 [度]
     
     返回:
-        总离心力的等效值 [N]
+        dict: {'x': x方向离心力, 'y': y方向离心力, 'magnitude': 合力大小}
     """
-    # 各部件离心力
-    F_rod_rot = ROD_ROT_MASS * CRANK_RADIUS * (ANGULAR_VELOCITY ** 2)  # 连杆大头（重心在曲柄销中心）
-    F_crank_pin = CRANK_PIN_MASS * CRANK_PIN_COG_R * (ANGULAR_VELOCITY ** 2)
-    F_crank_web = CRANK_WEB_MASS * CRANK_WEB_COG_R * (ANGULAR_VELOCITY ** 2)
-    F_balance = BALANCE_WEIGHT_MASS * BALANCE_WEIGHT_COG_R * (ANGULAR_VELOCITY ** 2)
+    phi = np.radians(phi_deg)
+    omega2 = ANGULAR_VELOCITY ** 2
     
-    # 净旋转惯性力（平衡重产生反向离心力）
-    total = F_rod_rot + F_crank_pin + F_crank_web - F_balance
+    # 沿曲柄方向的旋转质量（连杆大头、曲柄销、曲柄臂）
+    # 这些质量的重心都在曲柄半径或其附近，方向沿曲柄向外
+    mass_along_crank = ROD_ROT_MASS + CRANK_PIN_MASS + CRANK_WEB_MASS
+    radius_along_crank = (ROD_ROT_MASS * CRANK_RADIUS + 
+                          CRANK_PIN_MASS * CRANK_PIN_COG_R + 
+                          CRANK_WEB_MASS * CRANK_WEB_COG_R) / mass_along_crank
     
-    return total
+    F_crank = mass_along_crank * radius_along_crank * omega2
+    
+    # 平衡重：通常安装在曲柄对面（180°方向）
+    # 平衡重的重心半径不同，方向与曲柄相反
+    F_balance = BALANCE_WEIGHT_MASS * BALANCE_WEIGHT_COG_R * omega2
+    
+    # 离心力分量计算
+    # 曲柄方向质量：沿角度phi方向
+    Fx_crank = F_crank * np.cos(phi)
+    Fy_crank = F_crank * np.sin(phi)
+    
+    # 平衡重：沿角度phi+π方向（与曲柄相反）
+    Fx_balance = F_balance * np.cos(phi + np.pi)
+    Fy_balance = F_balance * np.sin(phi + np.pi)
+    
+    # 合成离心力
+    Fx_total = Fx_crank + Fx_balance
+    Fy_total = Fy_crank + Fy_balance
+    
+    return {
+        'x': Fx_total,
+        'y': Fy_total,
+        'magnitude': np.sqrt(Fx_total**2 + Fy_total**2),
+        'F_crank': F_crank,
+        'F_balance': F_balance
+    }
 
 
 def calculate_main_bearing_load(phi_deg, pressure_data):
@@ -86,17 +118,12 @@ def calculate_main_bearing_load(phi_deg, pressure_data):
     # 连杆轴颈负荷
     rod_load = calculate_rod_bearing_load(phi_deg, pressure_data)
     
-    # 旋转质量离心力（始终向外）
-    F_rot = calculate_rotating_inertia_force()
-    phi = np.radians(phi_deg)
-    
-    # 离心力分量（始终沿曲柄向外）
-    Fx_rot = F_rot * np.cos(phi)
-    Fy_rot = F_rot * np.sin(phi)
+    # 旋转质量离心力（按角度矢量合成）
+    rot_force = calculate_rotating_inertia_force_components(phi_deg)
     
     # 主轴颈负荷 = 连杆轴颈负荷 + 离心力
-    Fx = rod_load['x'] + Fx_rot
-    Fy = rod_load['y'] + Fy_rot
+    Fx = rod_load['x'] + rot_force['x']
+    Fy = rod_load['y'] + rot_force['y']
     
     magnitude = np.sqrt(Fx**2 + Fy**2)
     angle = np.degrees(np.arctan2(Fy, Fx))
@@ -190,7 +217,15 @@ if __name__ == "__main__":
         print("=" * 60)
         print("轴承负荷计算结果")
         print("=" * 60)
-        print(f"旋转质量离心力: {calculate_rotating_inertia_force()/1e3:.2f} kN")
+        
+        # 测试几个角度的旋转离心力
+        test_angles = [0, 90, 180, 270]
+        print("旋转质量离心力（不同角度）：")
+        for phi in test_angles:
+            rot = calculate_rotating_inertia_force_components(phi)
+            print(f"  {phi}°: 合力={rot['magnitude']/1e3:.2f} kN, "
+                  f"曲柄质量={rot['F_crank']/1e3:.2f} kN, "
+                  f"平衡重={rot['F_balance']/1e3:.2f} kN")
         print()
         print("连杆轴颈负荷:")
         print(f"  范围: {loads['rod_bearing']['magnitude'].min()/1e3:.2f} ~ {loads['rod_bearing']['magnitude'].max()/1e3:.2f} kN")
