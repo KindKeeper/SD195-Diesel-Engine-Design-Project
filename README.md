@@ -67,29 +67,28 @@ SD195-Diesel-Engine-Design-Project/
 
 #### 前置要求
 
-**安装Miniforge（Python环境管理工具）**
-1. 访问 https://github.com/conda-forge/miniforge/releases
-2. 下载 `Miniforge3-Windows-x86_64.exe`（约100MB）
-3. 双击安装，**勾选"Add to PATH"**
+**安装 Python（5分钟搞定）**
 
+最简步骤：
+1. 下载 [Python](https://www.python.org/downloads/)，安装时勾选 **"Add to PATH"**
+2. 打开 CMD，运行：`pip install numpy matplotlib`
+3. 完成！
 
-
-#### 快速开始（4步完成全部计算）
+#### 快速开始（3步完成全部计算）
 
 | 步骤 | 操作 | 说明 |
 |------|------|------|
-| 1 | 安装Miniforge | 下载并安装Miniforge（只需一次） |
-| 2 | 双击 `安装环境.bat` | 创建Python环境，安装依赖（只需一次） |
-| 3 | 双击 `运行计算.bat` | **一键完成**：计算 → 生成附表 → 生成附图 |
-| 4 | 查看结果 | 所有成果已就绪，可直接插入设计说明书 |
+| 1 | 安装Python | 下载安装Python，勾选"Add to PATH"（只需一次） |
+| 2 | 安装依赖 | 运行 `pip install numpy matplotlib`（只需一次） |
+| 3 | 运行计算 | `python src/dynamic_calculation/main.py`，自动生成所有成果 |
 
 #### 自动生成的成果
 
-运行 `运行计算.bat` 后，程序会自动生成以下文件到 `results/` 目录：
+运行 `python src/dynamic_calculation/main.py` 后，程序会自动生成以下文件到 `results/` 目录：
 
 ```
 results/
-├── tables/              # 📊 附表1-5（CSV格式）
+├── tables/              # 📊 附表1-6（CSV格式）
 │   ├── 附表1_活塞运动学数据.csv
 │   ├── 附表2_气体力与合力.csv
 │   ├── 附表3_连杆及侧压力.csv
