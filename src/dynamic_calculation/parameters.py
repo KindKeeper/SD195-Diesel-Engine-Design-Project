@@ -19,13 +19,11 @@ CRANK_RADIUS = 57.5e-3  # 曲柄半径 [m]
 ROD_LENGTH = 175e-3  # 连杆长度 [m]
 LAMBDA = CRANK_RADIUS / ROD_LENGTH  # 连杆比
 PISTON_OFFSET = 7e-3  # 活塞偏移 [m]，向主推力侧偏移
-USE_PISTON_OFFSET = True  # 启用活塞偏移修正（与2020级参考报告一致）
 
 # 压缩比和燃烧室
 COMPRESSION_RATIO = 19  # 压缩比（18~20取中间值）
-COMBUSTION_CHAMBER_TYPE = "涡流室"  # 燃烧室型式
+COMBUSTION_CHAMBER = "涡流室"  # 燃烧室型式
 COOLING_TYPE = "水冷强制循环"  # 冷却方式
-COMBUSTION_CHAMBER = "涡流室"
 
 # 派生参数
 PISTON_AREA = np.pi * (BORE ** 2) / 4  # 活塞顶面积 [m²]

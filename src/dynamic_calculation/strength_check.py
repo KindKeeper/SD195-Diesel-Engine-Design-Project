@@ -4,7 +4,7 @@
 曲轴：曲柄销圆角安全系数计算
 连杆：小头强度校核和刚度校核
 
-参考：课程设计指导书、2020级参考报告
+参考：课程设计指导书
 """
 
 import numpy as np
@@ -16,7 +16,7 @@ from parameters import CRANK_RADIUS, ROD_LENGTH, ANGULAR_VELOCITY, BORE
 def calculate_crankshaft_dimensions(bore_mm):
     """
     根据缸径计算曲轴主要尺寸（经验公式）
-    来源：2020级参考报告、柴油机设计手册
+    来源：柴油机设计手册
     """
     return {
         'crank_pin_diameter': 0.63 * bore_mm,      # (0.6~0.7)D
@@ -34,8 +34,8 @@ _CRANK_DIMS = calculate_crankshaft_dimensions(BORE * 1000)
 
 # 曲柄销尺寸参数
 CRANK_PIN_DIAMETER = _CRANK_DIMS['crank_pin_diameter']      # 60 mm
-crank_pin_length = _CRANK_DIMS['crank_pin_length']          # 40 mm
-fillet_radius = _CRANK_DIMS['fillet_radius']                # 3 mm
+CRANK_PIN_LENGTH = _CRANK_DIMS['crank_pin_length']          # 40 mm
+FILLET_RADIUS = _CRANK_DIMS['fillet_radius']                # 3 mm
 
 # 曲柄臂尺寸参数
 CRANK_WEB_THICKNESS = _CRANK_DIMS['crank_web_thickness']    # 22 mm
@@ -253,7 +253,7 @@ def save_strength_report(results, filepath):
         f.write("-" * 70 + "\n")
         f.write(f"气缸直径 D = 95 mm\n")
         f.write(f"曲柄销直径 dp = 0.63D = {CRANK_PIN_DIAMETER:.1f} mm\n")
-        f.write(f"曲柄销长度 lp = 0.42D = {crank_pin_length:.1f} mm\n")
+        f.write(f"曲柄销长度 lp = 0.42D = {CRANK_PIN_LENGTH:.1f} mm\n")
         f.write(f"曲柄臂厚度 h = 0.23D = {CRANK_WEB_THICKNESS:.1f} mm\n")
         f.write(f"曲柄臂宽度 b = 1.05D = {CRANK_WEB_WIDTH:.1f} mm\n\n")
         
