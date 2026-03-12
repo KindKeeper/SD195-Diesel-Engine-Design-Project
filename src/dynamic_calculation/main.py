@@ -31,6 +31,7 @@ from io_utils import (
     save_kinematics_to_csv,
     save_dynamics_to_csv,
     save_bearing_load_to_csv,
+    save_torque_to_csv,
     create_sample_data_files
 )
 
@@ -132,7 +133,6 @@ def run_calculation():
                          use_pressure_unit=False)  # 使用力的单位kN
     
     # 附表5：扭矩曲线数据
-    from io_utils import save_torque_to_csv
     save_torque_to_csv(dynamics_data,
                        os.path.join(tables_dir, '附表5_扭矩曲线数据.csv'))
     
@@ -158,7 +158,8 @@ def run_calculation():
     torque = tangential_forces * CRANK_RADIUS
     
     # 数值积分（梯形法）计算指示功
-    indicated_work = np.trapezoid(torque, angles_rad)
+    # 兼容 NumPy 1.x (trapz) 和 2.x (trapezoid)
+    indicated_work = np.trapezoid(torque, angles_rad) if hasattr(np, 'trapezoid') else np.trapz(torque, angles_rad)
     
     # 指示功率 = 指示功 × 转速 / 120（四冲程，每2转做功一次）
     indicated_power = indicated_work * RATED_SPEED / 120
