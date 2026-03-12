@@ -293,24 +293,24 @@ def create_sample_data_files(data_dir='../../data/original/'):
     
     # 进气冲程 (0-180°)
     for angle in range(0, 180, 10):
-        pressure_data.append([angle, 0.0857])
+        pressure_data.append([str(angle), str(0.0857)])
     
     # 压缩冲程 (180-360°) - 简化为线性增加
     for angle in range(180, 360, 10):
         p = 0.0857 + (6.7025 - 0.0857) * (angle - 180) / 180
-        pressure_data.append([angle, round(p, 4)])
+        pressure_data.append([str(angle), str(round(p, 4))])
     
     # 做功冲程 (360-540°)
-    pressure_data.append([360, 6.7025])
-    pressure_data.append([370, 7.0849])  # 峰值
-    pressure_data.append([380, 6.5])
+    pressure_data.append(['360', '6.7025'])
+    pressure_data.append(['370', '7.0849'])  # 峰值
+    pressure_data.append(['380', '6.5'])
     for angle in range(390, 540, 10):
         p = 0.4 + (6.5 - 0.4) * (540 - angle) / 160
-        pressure_data.append([angle, round(p, 4)])
+        pressure_data.append([str(angle), str(round(p, 4))])
     
     # 排气冲程 (540-720°)
     for angle in range(540, 721, 10):
-        pressure_data.append([angle, 0.0936])
+        pressure_data.append([str(angle), str(0.0936)])
     
     with open(os.path.join(data_dir, 'pressure_data_SD195.csv'), 
               'w', newline='', encoding='utf-8') as f:

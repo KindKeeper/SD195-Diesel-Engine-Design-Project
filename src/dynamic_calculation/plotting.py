@@ -3,6 +3,8 @@
 生成课程设计所需的曲线图
 """
 
+from typing import cast
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
@@ -148,6 +150,7 @@ def plot_bearing_load_polar(bearing_data, bearing_type='rod', save_path=None):
     angles, magnitudes = prepare_polar_plot_data(bearing_data, bearing_type)
     
     fig, ax = plt.subplots(figsize=(8, 8), subplot_kw=dict(projection='polar'))
+    ax = cast(plt.PolarAxes, ax)  # 类型断言：告诉Pylance这是极坐标轴
     
     # 极坐标图（使用力的单位kN）
     ax.plot(angles, magnitudes / 1e3, 'b-', linewidth=1.5)
