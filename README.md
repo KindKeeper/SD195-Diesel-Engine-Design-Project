@@ -88,7 +88,7 @@ SD195-Diesel-Engine-Design-Project/
 
 ```
 results/
-├── tables/              # 📊 附表1-6（CSV格式）
+├── tables/              # 📊 附表1-5（CSV格式）
 │   ├── 附表1_活塞运动学数据.csv
 │   ├── 附表2_气体力与合力.csv
 │   ├── 附表3_连杆及侧压力.csv

@@ -148,31 +148,6 @@ def save_kinematics_to_csv(kinematics_data, filepath):
     save_to_csv(data, filepath)
 
 
-def save_torque_to_csv(dynamics_data, filepath):
-    """
-    保存扭矩计算结果到CSV（附表5）
-    
-    参数:
-        dynamics_data: 动力学计算结果
-        filepath: 保存路径
-    """
-    from parameters import CRANK_RADIUS
-    
-    angles = dynamics_data['crank_angle']
-    tangential_forces = dynamics_data['tangential_force']
-    
-    # 扭矩 = 切向力 × 曲柄半径
-    torques = tangential_forces * CRANK_RADIUS  # [N·m]
-    
-    data = {
-        '曲轴转角(度)': angles,
-        '切向力(N)': tangential_forces,
-        '扭矩(N·m)': torques
-    }
-    
-    save_to_csv(data, filepath)
-
-
 def save_dynamics_to_csv(dynamics_data, filepath, use_pressure_unit=False):
     """
     保存动力学计算结果到CSV

@@ -31,7 +31,6 @@ from io_utils import (
     save_kinematics_to_csv,
     save_dynamics_to_csv,
     save_bearing_load_to_csv,
-    save_torque_to_csv,
     create_sample_data_files
 )
 
@@ -113,7 +112,7 @@ def run_calculation():
     os.makedirs(calculations_dir, exist_ok=True)
     os.makedirs(plots_dir, exist_ok=True)
     
-    # 保存为CSV（附表1-5）
+    # 保存为CSV（附表1-5，遵循课程设计指导书要求）
     save_kinematics_to_csv(kinematics_data,
                            os.path.join(tables_dir, '附表1_活塞运动学数据.csv'))
     
@@ -132,16 +131,14 @@ def run_calculation():
                          os.path.join(tables_dir, '附表3_连杆及侧压力.csv'),
                          use_pressure_unit=False)  # 使用力的单位kN
     
-    # 附表5：扭矩曲线数据
-    save_torque_to_csv(dynamics_data,
-                       os.path.join(tables_dir, '附表5_扭矩曲线数据.csv'))
-    
+    # 附表4：连杆轴颈负荷
     save_bearing_load_to_csv(bearing_data, 'rod',
                              os.path.join(tables_dir, '附表4_连杆轴颈负荷.csv'),
                              use_pressure_unit=False)  # 使用力的单位kN
     
+    # 附表5：主轴颈负荷
     save_bearing_load_to_csv(bearing_data, 'main',
-                             os.path.join(tables_dir, '附表6_主轴颈负荷.csv'),
+                             os.path.join(tables_dir, '附表5_主轴颈负荷.csv'),
                              use_pressure_unit=False)  # 使用力的单位kN
     
     # 生成图表
@@ -199,13 +196,12 @@ def run_calculation():
     print("计算完成！")
     print("=" * 70)
     print("\n输出文件:")
-    print("  📊 附表1-6 (CSV格式): results/tables/")
+    print("  📊 附表1-5 (CSV格式): results/tables/")
     print("     - 附表1: 活塞运动学数据")
     print("     - 附表2: 气体力与合力")
     print("     - 附表3: 连杆力及侧压力")
     print("     - 附表4: 连杆轴颈负荷")
-    print("     - 附表5: 扭矩曲线数据")
-    print("     - 附表6: 主轴颈负荷")
+    print("     - 附表5: 主轴颈负荷")
     print("     - 可用Excel直接打开并打印")
     print("\n  📝 强度校核报告: results/calculations/")
     print("     - 包含曲轴和连杆的安全系数计算")
